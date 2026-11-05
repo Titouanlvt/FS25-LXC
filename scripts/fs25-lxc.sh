@@ -33,6 +33,8 @@ Options :
   --ram MB      RAM du conteneur en Mo   (défaut : preset CT_RAM, 8192)
   --disk GB     Disque du conteneur en Go (défaut : preset CT_DISK, 64)
   --storage S   Stockage de la rootfs    (défaut : preset CT_STORAGE, local-lvm)
+  --check       Revue sans rien déployer : prérequis + CT existant si --vmid,
+                exit 0 si tout est OK, 1 sinon
   -h, --help    Affiche cette aide
 
 Configuration : variables d'environnement, ou fichier .env (gitignoré) à la racine
@@ -40,6 +42,102 @@ du clone, ou FS25_ENV_FILE=/chemin/vers/fichier.env. En mode one-liner, les vale
 manquantes (STEAM_USER, STEAM_PASS, mot de passe root du conteneur...) sont
 demandées en interactif.
 USAGE
+}
+
+# --- Revue (--check) : compteurs + fonction host_review --------------------------
+CHK_PASS=0 CHK_FAIL=0
+chk() {
+  if [[ "$1" -eq 0 ]]; then
+    echo -e "${GN}[PASS]${CL} $2"; CHK_PASS=$((CHK_PASS + 1))
+  else
+    echo -e "${RD}[FAIL]${CL} $2"; CHK_FAIL=$((CHK_FAIL + 1))
+  fi
+}
+
+host_review() {
+  set +e
+  echo -e "${BL}== Revue hôte (fs25-lxc.sh --check) ==${CL}"
+  local NODE c tpl conf cores mem rsz bridge rel f ok
+  NODE="$(hostname)"
+
+  [[ $EUID -eq 0 ]]; chk $? "exécuté en root (EUID=0)"
+  for c in pct pveam pvesh; do
+    command -v "$c" >/dev/null 2>&1; chk $? "outil $c présent"
+  done
+
+  pvesh get "/storage/$CT_STORAGE" >/dev/null 2>&1; chk $? "stockage '$CT_STORAGE' déclaré"
+
+  bridge="${CT_NET##*bridge=}"; bridge="${bridge%%,*}"
+  if [[ -n "$bridge" && "$bridge" != "$CT_NET" ]]; then
+    if pvesh get "/nodes/$NODE/network" 2>/dev/null | grep -q "\"$bridge\"" || grep -q "$bridge" /etc/network/interfaces 2>/dev/null; then
+      chk 0 "bridge $bridge existe"
+    else
+      chk 1 "bridge $bridge introuvable"
+    fi
+  else
+    chk 1 "bridge non détecté dans CT_NET='$CT_NET'"
+  fi
+
+  pveam update >/dev/null 2>&1
+  tpl="$(pveam available --section system 2>/dev/null | awk -v p="ubuntu-${VAR_VERSION}" '$2 ~ "^"p {print $2}' | sort -V | tail -n1)"
+  if [[ -n "$tpl" ]]; then
+    chk 0 "template Proxmox ubuntu-$VAR_VERSION disponible ($tpl)"
+  elif ls /var/lib/vz/template/cache/ubuntu-${VAR_VERSION}*-root.tar.xz >/dev/null 2>&1; then
+    chk 0 "image cloud ubuntu-$VAR_VERSION déjà en cache"
+  else
+    ok=1
+    for rel in "${VAR_VERSION}.1" "$VAR_VERSION"; do
+      f="ubuntu-${rel}-server-cloudimg-amd64-root.tar.xz"
+      if curl -fsSI --max-time 20 "https://cloud-images.ubuntu.com/releases/${rel}/release/${f}" >/dev/null 2>&1; then ok=0; break; fi
+    done
+    chk $ok "image cloud ubuntu-$VAR_VERSION téléchargeable (cloud-images.ubuntu.com)"
+  fi
+
+  if [[ -z "${VMID:-}" ]] && command -v pvesh >/dev/null 2>&1; then
+    VMID="$(pvesh get /nextid 2>/dev/null)"
+  fi
+  if [[ -n "${VMID:-}" ]]; then
+    if command -v pct >/dev/null 2>&1 && pct status "$VMID" >/dev/null 2>&1; then
+      chk 0 "CT $VMID existe (revue de l'existant)"
+      if pct status "$VMID" 2>/dev/null | grep -q running; then chk 0 "CT $VMID en cours d'exécution"; else chk 1 "CT $VMID arrêté (pct start $VMID)"; fi
+      conf="$(pct config "$VMID" 2>/dev/null)"
+      cores="$(awk -F': ' '/^cores:/ {print $2}' <<<"$conf")"
+      mem="$(awk -F': ' '/^memory:/ {print $2}' <<<"$conf")"
+      rsz="$(grep -o 'size=[0-9]*G' <<<"$conf" | head -n1 | cut -d= -f2 | tr -d 'G')"
+      if [[ "$cores" == "$CT_CPU" ]]; then chk 0 "cores du CT = $cores (preset $CT_CPU)"; else chk 1 "cores du CT = ${cores:-?} != preset $CT_CPU"; fi
+      if [[ "$mem" == "$CT_RAM" ]]; then chk 0 "RAM du CT = $mem Mo (preset $CT_RAM)"; else chk 1 "RAM du CT = ${mem:-?} Mo != preset $CT_RAM"; fi
+      if [[ -n "$rsz" ]] && [[ "$rsz" -ge "$CT_DISK" ]]; then chk 0 "rootfs ${rsz}G >= preset ${CT_DISK}G"; else chk 1 "rootfs ${rsz:-?}G < preset ${CT_DISK}G"; fi
+      if pct exec "$VMID" -- test -x /usr/local/bin/fs25-check.sh 2>/dev/null; then
+        pct exec "$VMID" -- /usr/local/bin/fs25-check.sh
+        chk $? "revue interne fs25-check (CT $VMID)"
+      else
+        chk 1 "fs25-check.sh absent dans le CT $VMID (installation FS25 non faite ?)"
+      fi
+    elif command -v pct >/dev/null 2>&1; then
+      chk 0 "CT $VMID libre (pas encore créé)"
+    else
+      chk 1 "pct absent : impossible de vérifier le CT $VMID"
+    fi
+  else
+    echo -e "${YW}[WARN]${CL} VMID non determined : vérification CTID sautée"
+  fi
+
+  if [[ "${FS_SOURCE:-steamcmd}" == "steamcmd" && "${STEAM_LOGIN_MODE:-account}" == "account" ]]; then
+    if [[ -n "${STEAM_USER:-}" && -n "${STEAM_PASS:-}" ]]; then
+      chk 0 "identifiants Steam présents (STEAM_USER/STEAM_PASS)"
+    elif [[ -t 0 ]]; then
+      read -r -p "Compte Steam possédant FS25 (STEAM_USER) : " STEAM_USER
+      read -rs -p "Mot de passe Steam (STEAM_PASS) : " STEAM_PASS; echo
+      if [[ -n "${STEAM_USER:-}" && -n "${STEAM_PASS:-}" ]]; then chk 0 "identifiants Steam saisis"; else chk 1 "identifiants Steam non saisis"; fi
+    else
+      chk 1 "STEAM_USER/STEAM_PASS manquants (renseignez .env, FS25_ENV_FILE ou l'environnement)"
+    fi
+  fi
+
+  echo -e "${BL}== Résultat : $CHK_PASS OK, $CHK_FAIL échec(s) ==${CL}"
+  set -e
+  [[ $CHK_FAIL -eq 0 ]] && return 0
+  return 1
 }
 
 # --- 0. Mode one-liner : si les fichiers compagnons sont absents, on les télécharge
@@ -60,7 +158,7 @@ if [[ ! -f "$SCRIPT_DIR/install-fs25.sh" ]]; then
   REPO_DIR="$BOOTSTRAP_DIR"
   mkdir -p "$REPO_DIR/config"
   info "Mode one-liner : téléchargement des fichiers compagnons depuis $RAW_BASE ..."
-  for f in scripts/install-fs25.sh scripts/update-fs25.sh config/dedicatedServer.xml.template config/dedicatedServerConfig.xml.template; do
+  for f in scripts/install-fs25.sh scripts/update-fs25.sh scripts/fs25-check.sh config/dedicatedServer.xml.template config/dedicatedServerConfig.xml.template; do
     dest="$SCRIPT_DIR/$(basename "$f")"
     [[ "$f" == config/* ]] && dest="$REPO_DIR/config/$(basename "$f")"
     curl -fsSL --retry 3 "$RAW_BASE/$f" -o "$dest" || die "Téléchargement de $f impossible depuis $RAW_BASE."
@@ -89,9 +187,11 @@ CT_DISK="${CT_DISK:-64}"
 CT_SWAP="${CT_SWAP:-512}"
 CT_NET="${CT_NET:-name=eth0,bridge=vmbr0,ip=dhcp}"
 VMID="${VMID:-}"
+CHECK_MODE=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --check)   CHECK_MODE=1; shift ;;
     --vmid)    VMID="$2"; shift 2 ;;
     --cpu)     CT_CPU="$2"; shift 2 ;;
     --ram)     CT_RAM="$2"; shift 2 ;;
@@ -101,6 +201,11 @@ while [[ $# -gt 0 ]]; do
     *) die "Option inconnue : $1 (voir --help)" ;;
   esac
 done
+
+# --- 1b. Mode revue (--check) : exit 0 si tout est OK, 1 sinon -------------------
+if [[ "$CHECK_MODE" == "1" ]]; then
+  if host_review; then exit 0; else exit 1; fi
+fi
 
 # --- 2. Prérequis --------------------------------------------------------------
 [[ $EUID -eq 0 ]] || die "Ce script doit être exécuté en root sur l'hôte Proxmox VE."
@@ -216,6 +321,7 @@ done
 
 pct push "$VMID" "$SCRIPT_DIR/install-fs25.sh" /root/install-fs25.sh --perms 0700
 pct push "$VMID" "$SCRIPT_DIR/update-fs25.sh" /root/update-fs25.sh --perms 0700
+pct push "$VMID" "$SCRIPT_DIR/fs25-check.sh" /root/fs25-check.sh --perms 0700
 pct push "$VMID" "$REPO_DIR/config/dedicatedServer.xml.template" /root/dedicatedServer.xml.template --perms 0600
 pct push "$VMID" "$REPO_DIR/config/dedicatedServerConfig.xml.template" /root/dedicatedServerConfig.xml.template --perms 0600
 pct push "$VMID" "$ENVFILE" /root/fs25.env --perms 0600

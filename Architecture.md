@@ -131,6 +131,7 @@ Sauvegardes : `vzdump <CTID>` (Proxmox) ou export ciblé du dossier `savegame*` 
 - `fs25-update.timer` (dimanche 04:00, `Persistent=true`) → `fs25-update.service` → `/usr/local/bin/fs25-update.sh` : stop `fs25`, `steamcmd +app_update 2300320 validate` (jeton Steam en cache, ou `anonymous`), start `fs25`.
 - Supervision : `systemctl status fs25`, `journalctl -u fs25 -f` (`StandardOutput=journal+console`).
 - Reprise sur panne : `Restart=on-failure`, `RestartSec=15`, `KillMode=mixed`, `TimeoutStopSec=180`.
+- **Revue à la demande (exit 0/1)** : `scripts/fs25-lxc.sh --check [--vmid N]` côté hôte (prérequis, stockage, bridge, template, CTID, ressources du CT vs presets, puis délégation au check interne via `pct exec`) et `scripts/fs25-check.sh` (installé en `/usr/local/bin/fs25-check.sh`) côté conteneur : fichiers, XML valides, unités systemd, service actif, ports à l'écoute (`ss`), ufw. Chaque contrôle imprime `[PASS]`/`[FAIL]` ; **exit 0 si tout passe, 1 sinon**.
 
 ## 9. Choix techniques et alternatives
 

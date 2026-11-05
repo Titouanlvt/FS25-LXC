@@ -60,6 +60,7 @@ Héberger un serveur dédié FS25 « proprement » demande aujourd'hui beaucoup 
 | EF-11 | Le script échoue proprement (messages `[ERR]`) si : pas root, pas Proxmox, CTID existant, identifiants manquants en mode account non interactif. | Should |
 | EF-12 | Récapitulatif final : IP, URLs du panneau web, port jeu, commandes utiles. | Should |
 | EF-13 | Mode one-liner : détection de l'absence des fichiers compagnons (`install-fs25.sh`, `update-fs25.sh`, templates XML) et téléchargement depuis `$FS25_RAW_BASE` (défaut : branche `main` du dépôt) dans un répertoire temporaire nettoyé en sortie. En one-liner, les secrets manquants sont demandés en interactif (stdin libre grâce à `bash -c "$(curl …)"`). | Must |
+| EF-14 | **Mode revue avec code retour 0/1** : `fs25-lxc.sh --check [--vmid N]` côté hôte (root, outils Proxmox, stockage, bridge, template dispo/téléchargeable, CTID libre ou existant avec ressources conformes aux presets, identifiants Steam, puis `fs25-check.sh` dans le CT via `pct exec`) et `scripts/fs25-check.sh` côté conteneur (utilisateur, SteamCMD, binaires du jeu, `steam_appid.txt`, XML présents et valides, unités systemd, service actif, ports à l'écoute, ufw) — chaque contrôle imprime `[PASS]`/`[FAIL]`, **exit 0 si tout passe, 1 sinon**. | Must |
 
 ## 6. Exigences non-fonctionnelles
 

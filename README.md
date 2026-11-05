@@ -140,6 +140,11 @@ Exemple : `sudo ./scripts/fs25-lxc.sh --cpu 4 --ram 12288 --disk 100`
 ## 🛠️ Exploitation
 
 ```bash
+# Revue complète — exit 0 si tout est OK, 1 sinon
+sudo ./scripts/fs25-lxc.sh --check --vmid <CTID>     # hôte : prérequis + ressources CT + check interne
+# en one-liner : sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/Titouanlvt/FS25-LXC/main/scripts/fs25-lxc.sh)" fs25-lxc --check --vmid <CTID>
+pct exec <CTID> -- /usr/local/bin/fs25-check.sh      # conteneur seul : fichiers, XML, service, ports, ufw
+
 # État / logs du serveur
 pct exec <CTID> -- systemctl status fs25
 pct exec <CTID> -- journalctl -u fs25 -f

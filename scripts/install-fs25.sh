@@ -167,6 +167,7 @@ exec /usr/bin/xvfb-run -a /usr/bin/wine "$FS_INSTALL_DIR/dedicatedServer.exe"
 EOF
 chmod 755 /usr/local/bin/fs25-start.sh
 install -m 0755 /root/update-fs25.sh /usr/local/bin/fs25-update.sh
+install -m 0755 /root/fs25-check.sh /usr/local/bin/fs25-check.sh
 
 cat > /etc/systemd/system/fs25.service <<EOF
 [Unit]
@@ -236,8 +237,16 @@ ufw --force enable
 info "Démarrage du service fs25 ..."
 systemctl start fs25.service
 
-rm -f /root/install-fs25.sh /root/update-fs25.sh /root/dedicatedServer.xml.template /root/dedicatedServerConfig.xml.template
+rm -f /root/install-fs25.sh /root/update-fs25.sh /root/fs25-check.sh /root/dedicatedServer.xml.template /root/dedicatedServerConfig.xml.template
 apt-get autoremove -y -qq || true
+
+sleep 5
+info "Revue de l'installation (fs25-check : exit 0 = tout OK, 1 = KO) ..."
+if /usr/local/bin/fs25-check.sh; then
+  ok "fs25-check : toutes les vérifications passent (exit 0)"
+else
+  warn "fs25-check : des vérifications échouent (normal si le service démarre encore) — relancez : /usr/local/bin/fs25-check.sh"
+fi
 
 ok "Installation terminée."
 echo "Panneau web : http://<ip>:${FS_WEB_PORT} et https://<ip>:${FS_WEB_TLS_PORT} (admin : ${FS_WEB_ADMIN_USER})"

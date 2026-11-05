@@ -49,7 +49,11 @@ Codes ANSI centralisés en tête de script :
 | Succès | `GN='\033[1;32m'` | `[ OK ]` vert |
 | Avertissement | `YW='\033[1;33m'` | `[WARN]` jaune |
 | Erreur | `RD='\033[1;31m'` | `[ERR ]` rouge (stderr + `exit 1`) |
+| Succès (check) | `GN='\033[1;32m'` | `[PASS]` vert |
+| Échec (check) | `RD='\033[1;31m'` | `[FAIL]` rouge |
 | Reset | `CL='\033[0m'` | — |
+
+Les modes revue (`--check`, `fs25-check.sh`) agrègent les contrôles en `[PASS]`/`[FAIL]` et rendent **exit 0 si tout passe, 1 sinon**.
 
 Helpers obligatoires : `info`, `ok`, `warn`, `die`.
 Format : `[ROLE] message` — alignés, courts, sans emoji dans les logs (les emojis sont réservés au README).
