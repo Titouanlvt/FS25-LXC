@@ -82,3 +82,37 @@ pct stop 900 && pct destroy 900
 # optionnel : libérer le template téléchargé
 pveam remove local:vztmpl/ubuntu-26.04-*.tar.* 2>/dev/null || true
 ```
+
+## 6. Développer / débugger DEPUIS le PVE (workflow git)
+
+L'agent (Vibe) tourne dans son propre sandbox et ne se connecte pas au PVE : le pont, c'est **git + ce chat**. Côté PVE, on clone le dépôt et on travaille en local (mieux que le one-liner pour débuguer) :
+
+```bash
+# Sur le PVE (root) — une fois :
+apt-get update && apt-get install -y git curl        # si absent
+cd /root
+git clone https://github.com/Titouanlvt/FS25-LXC.git
+cd FS25-LXC
+git config user.name "Titouanlvt"
+git config user.email "toi@exemple.fr"
+# Auth pour pousser (JAMAIS de secret commité) :
+#   - recommandé : clé SSH (ssh-keygen -t ed25519, l'ajouter dans GitHub > Settings > SSH keys)
+#   - ou PAT GitHub en credential helper local :
+#     git config credential.helper store   # puis ~/.git-credentials en chmod 600
+
+# Boucle de test depuis le clone (pas de sudo, shell déjà root) :
+bash scripts/fs25-lxc.sh --check
+env STEAM_USER=... STEAM_PASS=... CT_ROOT_PASSWORD=... bash scripts/fs25-lxc.sh --vmid 900 --cpu 4 --ram 8192 --disk 64
+pct exec 900 -- /usr/local/bin/fs25-check.sh; echo "exit=$?"
+pct exec 900 -- journalctl -u fs25 -n 200 --no-pager
+
+# Après modification d'un script :
+bash -n scripts/*.sh                                   # syntaxe
+bash scripts/fs25-lxc.sh --check --vmid 900            # revue, exit 0/1
+git add -A && git commit -m "fix: ..." && git push origin HEAD:refs/heads/vibe/pve-test
+# (l'agent reverra le diff sur GitHub / branche vibe/...)
+```
+
+Boucle avec l'agent : tu colles ici la sortie d'erreur (logs `journalctl`, résultat de `--check`) → je corrige dans mon sandbox → je push sur une branche `vibe/...` → tu fais `git pull` sur le PVE → tu retestes. Ou inversement : tu corriges sur le PVE et tu push, je review la branche sur GitHub.
+
+Règles : `.env` et tout secret restent hors git (`.gitignore`); ne commite jamais de token/clé (utilise une clé SSH ou `credential.helper store` en 600); `bash -n scripts/*.sh` avant chaque commit.
