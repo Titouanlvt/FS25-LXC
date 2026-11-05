@@ -1,0 +1,15 @@
+# Secrets et fichiers locaux — JAMAIS commités
+.env
+*.env
+.env.*
+!.env.example
+
+# Logs et temporaires
+*.log
+*.bak
+*.tmp
+.DS_Store
+
+# Sauvegardes locales
+backups/
+dump/

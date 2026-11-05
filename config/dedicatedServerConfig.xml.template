@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<gameserver>
+    <settings>
+        <game_name>@FS_GAME_NAME@</game_name>
+        <admin_password>@FS_ADMIN_PASSWORD@</admin_password>
+        <game_password>@FS_GAME_PASSWORD@</game_password>
+        <savegame_index>@FS_SAVEGAME_INDEX@</savegame_index>
+        <max_player>@FS_MAX_PLAYERS@</max_player>
+        <port>@FS_PORT@</port>
+        <language>@FS_LANGUAGE@</language>
+        <auto_save_interval>@FS_SAVE_INTERVAL@.000000</auto_save_interval>
+        <stats_interval>360.000000</stats_interval>
+        <crossplay_allowed>@FS_CROSSPLAY@</crossplay_allowed>
+        <initialMoney>@FS_INITIAL_MONEY@</initialMoney>
+        <initialLoan>0</initialLoan>
+        <economicDifficulty>@FS_ECONOMIC_DIFFICULTY@</economicDifficulty>
+        <pause_game_if_empty>@FS_PAUSE_IF_EMPTY@</pause_game_if_empty>
+        <mapID>@FS_MAP@</mapID>
+        <mapFilename>default</mapFilename>
+    </settings>
+</gameserver>

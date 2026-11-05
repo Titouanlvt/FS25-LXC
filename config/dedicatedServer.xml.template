@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<server>
+    <webserver port="@FS_WEB_PORT@">
+        <initial_admin>
+            <username>@FS_WEB_ADMIN_USER@</username>
+            <passphrase>@FS_WEB_ADMIN_PASS@</passphrase>
+        </initial_admin>
+        <tls port="@FS_WEB_TLS_PORT@" active="true">
+            <certificate>cert.pem</certificate>
+            <privatekey>pk.pem</privatekey>
+            <intermediateCertificates>
+            </intermediateCertificates>
+        </tls>
+    </webserver>
+    <game description="Farming Simulator 25" name="FarmingSimulator2025" exe="FarmingSimulator2025Game.exe">
+        <imprint active="false"><![CDATA[]]></imprint>
+        <logos>
+            <login></login>
+            <bottom></bottom>
+        </logos>
+    </game>
+</server>
