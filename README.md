@@ -78,6 +78,8 @@ sudo env STEAM_USER=mon-compte STEAM_PASS=******** CT_ROOT_PASSWORD=******** FS_
 
 Le script : crée le LXC Ubuntu 26.04, **reset les ressources** (CPU/RAM/disque/swap), démarre le conteneur, puis installe tout FS25 à l'intérieur (le téléchargement du jeu ~50 Go prend un moment).
 
+> 🧪 Pour valider sur un **PVE de test** (revue `--check` exit 0/1 avant/après, scénarios, rollback) : voir [TESTING.md](TESTING.md).
+
 ### Installation personnalisée (clone du dépôt)
 
 ```bash
@@ -202,6 +204,7 @@ FS25-LXC/
 ├── PRD.md                     # Product Requirements Document
 ├── Architecture.md            # architecture technique
 ├── Design-System.md           # conventions de code / docs / logs
+├── TESTING.md                 # plan de test sur un PVE de test
 └── README.md
 ```
 
