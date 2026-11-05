@@ -5,15 +5,15 @@
 # Inspiré de ct/ubuntu.sh (community-scripts/ProxmoxVE) : presets de ressources
 # en tête de fichier (var_*), surchargeables par .env (gitignoré) ou par CLI.
 #
-# À exécuter EN ROOT SUR L'HÔTE PROXMOX VE :
+# À exécuter EN ROOT SUR L'HÔTE PROXMOX VE, en une commande :
+#   sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/Titouanlvt/FS25-LXC/main/scripts/fs25-lxc.sh)"
+# ou depuis un clone :
 #   sudo ./scripts/fs25-lxc.sh [--vmid 120] [--cpu 4] [--ram 8192] [--disk 64]
+# En mode one-liner, les fichiers compagnons sont téléchargés à la volée.
 #
 # Aucun secret n'est commité : les identifiants passent par .env / l'env.
 # ==============================================================================
 set -euo pipefail
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 GN='\033[1;32m' YW='\033[1;33m' RD='\033[1;31m' BL='\033[1;34m' CL='\033[0m'
 info() { echo -e "${BL}[INFO]${CL} $*"; }
@@ -21,12 +21,58 @@ ok()   { echo -e "${GN}[ OK ]${CL} $*"; }
 warn() { echo -e "${YW}[WARN]${CL} $*"; }
 die()  { echo -e "${RD}[ERR ]${CL} $*" >&2; exit 1; }
 
-usage() { sed -n '3,11p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
+usage() {
+  cat <<'USAGE'
+Usage :
+  sudo ./scripts/fs25-lxc.sh [options]                                   (depuis un clone)
+  sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/Titouanlvt/FS25-LXC/main/scripts/fs25-lxc.sh)"   (one-liner)
 
-# --- 1. Configuration : .env (gitignoré), presets, puis arguments CLI ---------
-if [[ -f "$REPO_DIR/.env" ]]; then
-  set -a; source "$REPO_DIR/.env"; set +a
-  info "Variables chargées depuis $REPO_DIR/.env"
+Options :
+  --vmid N      ID du conteneur (défaut : prochain ID libre)
+  --cpu N       vCPU du conteneur       (défaut : preset CT_CPU, 4)
+  --ram MB      RAM du conteneur en Mo   (défaut : preset CT_RAM, 8192)
+  --disk GB     Disque du conteneur en Go (défaut : preset CT_DISK, 64)
+  --storage S   Stockage de la rootfs    (défaut : preset CT_STORAGE, local-lvm)
+  -h, --help    Affiche cette aide
+
+Configuration : variables d'environnement, ou fichier .env (gitignoré) à la racine
+du clone, ou FS25_ENV_FILE=/chemin/vers/fichier.env. En mode one-liner, les valeurs
+manquantes (STEAM_USER, STEAM_PASS, mot de passe root du conteneur...) sont
+demandées en interactif.
+USAGE
+}
+
+# --- 0. Mode one-liner : si les fichiers compagnons sont absents, on les télécharge
+RAW_BASE="${FS25_RAW_BASE:-https://raw.githubusercontent.com/Titouanlvt/FS25-LXC/main}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-}")" 2>/dev/null && pwd || pwd)"
+REPO_DIR="$(cd "$SCRIPT_DIR/.." 2>/dev/null && pwd || pwd)"
+BOOTSTRAP_DIR=""
+ENVFILE=""
+cleanup() {
+  [[ -n "$ENVFILE" ]] && rm -f "$ENVFILE"
+  [[ -n "$BOOTSTRAP_DIR" && -d "$BOOTSTRAP_DIR" ]] && rm -rf "$BOOTSTRAP_DIR"
+}
+trap cleanup EXIT
+
+if [[ ! -f "$SCRIPT_DIR/install-fs25.sh" ]]; then
+  BOOTSTRAP_DIR="$(mktemp -d /tmp/fs25-lxc.XXXXXX)"
+  SCRIPT_DIR="$BOOTSTRAP_DIR"
+  REPO_DIR="$BOOTSTRAP_DIR"
+  mkdir -p "$REPO_DIR/config"
+  info "Mode one-liner : téléchargement des fichiers compagnons depuis $RAW_BASE ..."
+  for f in scripts/install-fs25.sh scripts/update-fs25.sh config/dedicatedServer.xml.template config/dedicatedServerConfig.xml.template; do
+    dest="$SCRIPT_DIR/$(basename "$f")"
+    [[ "$f" == config/* ]] && dest="$REPO_DIR/config/$(basename "$f")"
+    curl -fsSL --retry 3 "$RAW_BASE/$f" -o "$dest" || die "Téléchargement de $f impossible depuis $RAW_BASE."
+  done
+  ok "Fichiers compagnons téléchargés dans $BOOTSTRAP_DIR"
+fi
+
+# --- 1. Configuration : FS25_ENV_FILE / .env (gitignoré), presets, puis CLI ----
+ENV_FILE="${FS25_ENV_FILE:-$REPO_DIR/.env}"
+if [[ -f "$ENV_FILE" ]]; then
+  set -a; source "$ENV_FILE"; set +a
+  info "Variables chargées depuis $ENV_FILE"
 fi
 
 VAR_OS="${VAR_OS:-ubuntu}"
@@ -163,7 +209,6 @@ FS_VARS=(STEAM_LOGIN_MODE STEAM_USER STEAM_PASS STEAM_GUARD FS_APPID FS_SOURCE F
          FS_SAVE_INTERVAL FS_CROSSPLAY FS_ECONOMIC_DIFFICULTY FS_PAUSE_IF_EMPTY
          FS_INITIAL_MONEY FS_SAVEGAME_INDEX FS_MAP)
 ENVFILE="$(mktemp /tmp/fs25-lxc-env.XXXXXX)"
-trap 'rm -f "$ENVFILE"' EXIT
 chmod 600 "$ENVFILE"
 for v in "${FS_VARS[@]}"; do
   printf '%s=%q\n' "$v" "${!v:-}" >> "$ENVFILE"

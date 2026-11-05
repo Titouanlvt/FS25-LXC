@@ -67,6 +67,7 @@ Document technique décrivant l'architecture du déploiement d'un serveur dédi�
 
 ## 3. Flux de déploiement (étapes)
 
+0. **Mode one-liner** (optionnel) : `sudo bash -c "$(curl -fsSL …/scripts/fs25-lxc.sh)"` — `BASH_SOURCE` ne pointe pas vers un fichier du dépôt, le script détecte l'absence de `install-fs25.sh` à côté de lui et télécharge les 4 fichiers compagnons depuis `$FS25_RAW_BASE` (défaut `raw.githubusercontent.com/Titouanlvt/FS25-LXC/main`) dans un `mktemp -d`, nettoyé à la sortie (trap EXIT). `bash -c "$(…)"` garde stdin libre pour les prompts interactifs (à préférer à `curl | bash -s`).
 1. **Préflight** : root requis, `pct`/`pveam`/`pvesh` présents, CTID libre, mot de passe root (prompt ou généré), identifiants Steam si `STEAM_LOGIN_MODE=account`.
 2. **Template** : `pveam available` → `pveam download local <ubuntu-26.04...>` ; sinon téléchargement de l'image cloud `ubuntu-26.04[-1]-server-cloudimg-amd64-root.tar.xz` depuis `cloud-images.ubuntu.com` dans `/var/lib/vz/template/cache/`.
 3. **Création** : `pct create <vmid> <template> --hostname --password --net0 --rootfs <storage>:<disk> --unprivileged 1 --features keyctl=1`.

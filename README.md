@@ -55,15 +55,37 @@ Hôte Proxmox VE
 
 ## 🚀 Installation rapide
 
+**Une seule commande**, sur l'hôte Proxmox en root (les identifiants Steam et le mot de passe root du conteneur vous seront demandés en interactif) :
+
 ```bash
-# Sur l'hôte Proxmox, en root :
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/Titouanlvt/FS25-LXC/main/scripts/fs25-lxc.sh)"
+```
+
+Avec des options (CTID, presets de ressources…) :
+
+```bash
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/Titouanlvt/FS25-LXC/main/scripts/fs25-lxc.sh)" fs25-lxc --vmid 120 --cpu 4 --ram 8192 --disk 64
+```
+
+En **non interactif** (tout passe par variables d'environnement, rien n'est commité) :
+
+```bash
+sudo env STEAM_USER=mon-compte STEAM_PASS=******** CT_ROOT_PASSWORD=******** FS_GAME_NAME="Ma Ferme" \
+  bash -c "$(curl -fsSL https://raw.githubusercontent.com/Titouanlvt/FS25-LXC/main/scripts/fs25-lxc.sh)"
+```
+
+> En mode one-liner, le script télécharge à la volée ses fichiers compagnons (`install-fs25.sh`, `update-fs25.sh`, templates XML) depuis `raw.githubusercontent.com`. Dépôt/branche alternatif : `FS25_RAW_BASE=https://raw.githubusercontent.com/<owner>/<repo>/<branche>`.
+
+Le script : crée le LXC Ubuntu 26.04, **reset les ressources** (CPU/RAM/disque/swap), démarre le conteneur, puis installe tout FS25 à l'intérieur (le téléchargement du jeu ~50 Go prend un moment).
+
+### Installation personnalisée (clone du dépôt)
+
+```bash
 git clone https://github.com/Titouanlvt/FS25-LXC.git
 cd FS25-LXC
 cp .env.example .env        # éditez .env : STEAM_USER / STEAM_PASS / nom du serveur...
 sudo ./scripts/fs25-lxc.sh  # ou avec options : --vmid 120 --cpu 4 --ram 8192 --disk 64
 ```
-
-Le script : crée le LXC Ubuntu 26.04, **reset les ressources** (CPU/RAM/disque/swap), démarre le conteneur, puis installe tout FS25 à l'intérieur (le téléchargement du jeu ~50 Go prend un moment).
 
 ## ⚙️ Configuration (variables)
 

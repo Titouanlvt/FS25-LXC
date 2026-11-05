@@ -26,6 +26,7 @@ Héberger un serveur dédié FS25 « proprement » demande aujourd'hui beaucoup 
 ## 4. Périmètre
 
 ### Inclus (v1)
+- Déploiement **en une commande** (one-liner) : `sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/Titouanlvt/FS25-LXC/main/scripts/fs25-lxc.sh)"` — le script télécharge à la volée ses fichiers compagnons depuis le dépôt (`FS25_RAW_BASE` surchargeable pour un fork/branche).
 - Création du LXC **Ubuntu Server 26.04 LTS** (26.04.1 lorsqu'elle sera publiée) : template Proxmox ou image cloud officielle en repli.
 - Reset/application des ressources du conteneur : `cores`, `memory`, `swap`, `rootfs` (via `pct set` + `pct resize`), presets modifiables (`.env` ou CLI `--cpu/--ram/--disk/--vmid/--storage`).
 - Installation FS25 via **SteamCMD** (appid `2300320`, plateforme Windows forcée), login `account` **ou** `anonymous` configurable ; mode alternatif `eshop` (installeur GIANTS).
@@ -46,7 +47,7 @@ Héberger un serveur dédié FS25 « proprement » demande aujourd'hui beaucoup 
 
 | ID | Exigence | Priorité |
 |---|---|---|
-| EF-01 | `scripts/fs25-lxc.sh` s'exécute en root sur l'hôte Proxmox et crée le LXC Ubuntu 26.04 avec hostname, mot de passe root, réseau configurables. | Must |
+| EF-01 | `scripts/fs25-lxc.sh` s'exécute en root sur l'hôte Proxmox et crée le LXC Ubuntu 26.04 avec hostname, mot de passe root, réseau configurables. Fonctionne aussi en one-liner (`curl | bash -c`), auquel cas les fichiers compagnons sont téléchargés depuis `raw.githubusercontent.com`. | Must |
 | EF-02 | Les ressources du conteneur sont **remises aux presets** à la création (`pct set --cores/--memory/--swap`, `pct resize rootfs`) et surchargeables par `.env` ou CLI. | Must |
 | EF-03 | Le template Ubuntu 26.04 est téléchargé via `pveam` s'il existe, sinon via l'image cloud officielle `cloud-images.ubuntu.com` (26.04.1 prioritaire, 26.04 sinon). | Must |
 | EF-04 | L'installation dans le conteneur installe Wine64 + Xvfb + SteamCMD et télécharge FS25 (`app_update 2300320 validate`, `@sSteamCmdForcePlatformType windows`). | Must |
@@ -58,6 +59,7 @@ Héberger un serveur dédié FS25 « proprement » demande aujourd'hui beaucoup 
 | EF-10 | README avec quickstart, table des variables, presets ressources, ports, exploitation, dépannage. | Must |
 | EF-11 | Le script échoue proprement (messages `[ERR]`) si : pas root, pas Proxmox, CTID existant, identifiants manquants en mode account non interactif. | Should |
 | EF-12 | Récapitulatif final : IP, URLs du panneau web, port jeu, commandes utiles. | Should |
+| EF-13 | Mode one-liner : détection de l'absence des fichiers compagnons (`install-fs25.sh`, `update-fs25.sh`, templates XML) et téléchargement depuis `$FS25_RAW_BASE` (défaut : branche `main` du dépôt) dans un répertoire temporaire nettoyé en sortie. En one-liner, les secrets manquants sont demandés en interactif (stdin libre grâce à `bash -c "$(curl …)"`). | Must |
 
 ## 6. Exigences non-fonctionnelles
 
@@ -73,9 +75,10 @@ Héberger un serveur dédié FS25 « proprement » demande aujourd'hui beaucoup 
 
 ## 7. Interface utilisateur (CLI)
 
-- Script unique côté hôte : `sudo ./scripts/fs25-lxc.sh [--vmid N] [--cpu N] [--ram MB] [--disk GB] [--storage S]`.
+- **Commande unique (recommandée)** : `sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/Titouanlvt/FS25-LXC/main/scripts/fs25-lxc.sh)"` — aucune étape intermédiaire ; les fichiers compagnons sont téléchargés à la volée et les secrets demandés en interactif. Variante avec options : ajouter ` fs25-lxc --vmid N --cpu N --ram MB --disk GB --storage S` après la commande `bash -c`. Variante non interactive : `sudo env STEAM_USER=… STEAM_PASS=… CT_ROOT_PASSWORD=… bash -c "$(curl …)"`.
+- Depuis un clone : `sudo ./scripts/fs25-lxc.sh [--vmid N] [--cpu N] [--ram MB] [--disk GB] [--storage S]` + `.env`.
 - Logs colorés normalisés : `[INFO]` bleu, `[ OK ]` vert, `[WARN]` jaune, `[ERR ]` rouge (voir Design-System.md).
-- Prompts interactifs pour le mot de passe root du CT et les identifiants Steam si `.env` incomplet ; en non interactif, mot de passe root généré et affiché une fois.
+- Prompts interactifs pour le mot de passe root du CT et les identifiants Steam si non fournis ; en non interactif, mot de passe root généré et affiché une fois.
 
 ## 8. Données et configuration
 
