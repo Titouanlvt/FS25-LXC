@@ -55,7 +55,7 @@ Hôte Proxmox VE
 
 ## 🚀 Installation rapide
 
-**Une seule commande**, sur l'hôte Proxmox en root (les identifiants Steam et le mot de passe root du conteneur vous seront demandés en interactif) :
+**Une seule commande**, sur l'hôte Proxmox. ⚠️ Sur le **shell root de Proxmox** (`root@pve:~#`), `sudo` n'existe pas : lancez **sans** `sudo` (les `sudo` ci-dessous ne servent que si vous partez d'un compte non-root). Les identifiants Steam et le mot de passe root du conteneur vous seront demandés en interactif :
 
 ```bash
 sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/Titouanlvt/FS25-LXC/main/scripts/fs25-lxc.sh)"

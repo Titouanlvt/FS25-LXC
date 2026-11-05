@@ -20,7 +20,7 @@ Héberger un serveur dédié FS25 « proprement » demande aujourd'hui beaucoup 
 
 ## 3. Utilisateurs cibles
 
-- Auto-hébergeurs / joueurs disposant d'un **nœud Proxmox VE** (8.x/9.x) et d'une **seconde licence FS25** (exigence GIANTS : serveur et client séparés).
+- Auto-hébergeurs / joueurs disposant d'un **nœud Proxmox VE 8.x/9.x** (version testée ; PVE 7 accepté avec avertissement — LXC 4.0/cgroup v1 peuvent poser problème avec Ubuntu 26.04) et d'une **seconde licence FS25** (exigence GIANTS : serveur et client séparés). Le shell Proxmox étant déjà root, les commandes s'y lancent **sans `sudo`**.
 - Niveau technique : à l'aise avec SSH/root sur Proxmox ; aucune compétence Wine requise.
 
 ## 4. Périmètre

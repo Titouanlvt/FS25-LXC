@@ -46,6 +46,7 @@ USAGE
 
 # --- Revue (--check) : compteurs + fonction host_review --------------------------
 CHK_PASS=0 CHK_FAIL=0
+note() { echo -e "${YW}[WARN]${CL} $*"; }
 chk() {
   if [[ "$1" -eq 0 ]]; then
     echo -e "${GN}[PASS]${CL} $2"; CHK_PASS=$((CHK_PASS + 1))
@@ -61,9 +62,18 @@ host_review() {
   NODE="$(hostname)"
 
   [[ $EUID -eq 0 ]]; chk $? "exécuté en root (EUID=0)"
-  for c in pct pveam pvesh; do
+  for c in pct pveam pvesh pveversion; do
     command -v "$c" >/dev/null 2>&1; chk $? "outil $c présent"
   done
+  if command -v pveversion >/dev/null 2>&1; then
+    local pve_major
+    pve_major="$(pveversion 2>/dev/null | head -n1 | sed -n 's#.*/\([0-9][0-9]*\)\..*#\1#p')"
+    if [[ -n "$pve_major" && "$pve_major" -ge 8 ]]; then
+      chk 0 "Proxmox VE $pve_major.x (>= 8 : version testée)"
+    else
+      note "Proxmox VE ${pve_major:-inconnu} (< 8) : Ubuntu 26.04 en LXC est prévu pour PVE 8/9 ; sur PVE 7 (LXC 4.0, cgroup v1) le déploiement peut nécessiter des ajustements"
+    fi
+  fi
 
   pvesh get "/storage/$CT_STORAGE" >/dev/null 2>&1; chk $? "stockage '$CT_STORAGE' déclaré"
 
@@ -319,12 +329,17 @@ for v in "${FS_VARS[@]}"; do
   printf '%s=%q\n' "$v" "${!v:-}" >> "$ENVFILE"
 done
 
-pct push "$VMID" "$SCRIPT_DIR/install-fs25.sh" /root/install-fs25.sh --perms 0700
-pct push "$VMID" "$SCRIPT_DIR/update-fs25.sh" /root/update-fs25.sh --perms 0700
-pct push "$VMID" "$SCRIPT_DIR/fs25-check.sh" /root/fs25-check.sh --perms 0700
-pct push "$VMID" "$REPO_DIR/config/dedicatedServer.xml.template" /root/dedicatedServer.xml.template --perms 0600
-pct push "$VMID" "$REPO_DIR/config/dedicatedServerConfig.xml.template" /root/dedicatedServerConfig.xml.template --perms 0600
-pct push "$VMID" "$ENVFILE" /root/fs25.env --perms 0600
+push_ct() {  # push_ct <src> <dest> <mode> — compatible PVE 7+ (repli sans --perms, puis chmod)
+  pct push "$VMID" "$1" "$2" --perms "$3" 2>/dev/null || pct push "$VMID" "$1" "$2"
+}
+push_ct "$SCRIPT_DIR/install-fs25.sh" /root/install-fs25.sh 0700
+push_ct "$SCRIPT_DIR/update-fs25.sh" /root/update-fs25.sh 0700
+push_ct "$SCRIPT_DIR/fs25-check.sh" /root/fs25-check.sh 0700
+push_ct "$REPO_DIR/config/dedicatedServer.xml.template" /root/dedicatedServer.xml.template 0600
+push_ct "$REPO_DIR/config/dedicatedServerConfig.xml.template" /root/dedicatedServerConfig.xml.template 0600
+push_ct "$ENVFILE" /root/fs25.env 0600
+pct exec "$VMID" -- chmod 700 /root/install-fs25.sh /root/update-fs25.sh /root/fs25-check.sh
+pct exec "$VMID" -- chmod 600 /root/fs25.env /root/dedicatedServer.xml.template /root/dedicatedServerConfig.xml.template
 
 info "Installation de Farming Simulator 25 dans le conteneur (téléchargement ~50 Go, peut durer longtemps) ..."
 pct exec "$VMID" -- bash -c 'set -a; source /root/fs25.env; set +a; bash /root/install-fs25.sh'

@@ -8,7 +8,7 @@ Objectif : valider le déploiement FS25-LXC de bout en bout sur un PVE de test, 
 
 | Élément | Détail |
 |---|---|
-| Proxmox VE | 8.x ou 9.x, accès **root en SSH** |
+| Proxmox VE | **8.x/9.x recommandé** (version testée), accès **root en SSH**. Sur PVE 7 (LXC 4.0) : possible mais non garanti — le `--check` affiche un avertissement |
 | Stockage | un stockage avec contenus `vztmpl` + `rootfs` (ex. `local-lvm`), **≥ 80 Go libres** (image ~1 Go + jeu ~50 Go) |
 | Réseau | bridge `vmbr0` (sinon adaptez `CT_NET`) |
 | Internet | le nœud doit joindre `download.proxmox.com` / `cloud-images.ubuntu.com` / `steamcdn-a.akamaihd.net` |
@@ -16,6 +16,8 @@ Objectif : valider le déploiement FS25-LXC de bout en bout sur un PVE de test, 
 | Ports côté LAN | rien à ouvrir pour un test LAN ; pour Internet : 10823 TCP/UDP (+10824–10825/UDP) en NAT vers l'IP du CT |
 
 ## 2. Test rapide (one-liner)
+
+> **Sur le shell root de Proxmox (`root@pve:~#`), `sudo` n'est pas installé : lancez les commandes SANS `sudo`.** Les `sudo` ci-dessous servent uniquement si vous partez d'un utilisateur non-root.
 
 ```bash
 # 0) Revue AVANT déploiement — attendre : exit 0
