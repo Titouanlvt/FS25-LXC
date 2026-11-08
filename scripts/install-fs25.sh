@@ -68,12 +68,12 @@ info "Mise à jour du système ..."
 apt-get update -qq
 apt-get upgrade -y -qq
 
-info "Installation des dépendances (wine64, xvfb, ufw, openssl, libs Steam) ..."
+info "Installation des dépendances (wine64, xvfb, x11vnc, ufw, openssl, libs Steam) ..."
 dpkg --add-architecture i386 || true
 apt-get update -qq
 apt-get install -y --no-install-recommends \
   ca-certificates curl wget openssl gnupg software-properties-common \
-  ufw xvfb x11-utils \
+  ufw xvfb x11-utils x11vnc \
   wine64 libwine \
   lib32gcc-s1 lib32stdc++6 libstdc++6 \
   winbind cabextract p7zip-full
@@ -168,6 +168,7 @@ EOF
 chmod 755 /usr/local/bin/fs25-start.sh
 install -m 0755 /root/update-fs25.sh /usr/local/bin/fs25-update.sh
 install -m 0755 /root/fs25-check.sh /usr/local/bin/fs25-check.sh
+install -m 0755 /root/fs25-activer.sh /usr/local/bin/fs25-activer
 
 cat > /etc/systemd/system/fs25.service <<EOF
 [Unit]
@@ -237,7 +238,7 @@ ufw --force enable
 info "Démarrage du service fs25 ..."
 systemctl start fs25.service
 
-rm -f /root/install-fs25.sh /root/update-fs25.sh /root/fs25-check.sh /root/dedicatedServer.xml.template /root/dedicatedServerConfig.xml.template
+rm -f /root/install-fs25.sh /root/update-fs25.sh /root/fs25-check.sh /root/fs25-activer.sh /root/dedicatedServer.xml.template /root/dedicatedServerConfig.xml.template
 apt-get autoremove -y -qq || true
 
 sleep 5
@@ -246,6 +247,13 @@ if /usr/local/bin/fs25-check.sh; then
   ok "fs25-check : toutes les vérifications passent (exit 0)"
 else
   warn "fs25-check : des vérifications échouent (normal si le service démarre encore) — relancez : /usr/local/bin/fs25-check.sh"
+fi
+
+# Vérifie si l'activation de la licence est nécessaire
+PROFILE_DIR="$WINEPREFIX_DIR/drive_c/users/$SRV_USER/Documents/My Games/FarmingSimulator2025"
+if ! ls "$PROFILE_DIR"/*.dat >/dev/null 2>&1; then
+  warn "Aucun fichier de licence (*.dat) trouvé dans $PROFILE_DIR"
+  warn "Activation à faire : /usr/local/bin/fs25-activer [--steam|--cle]"
 fi
 
 ok "Installation terminée."
