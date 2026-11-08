@@ -59,7 +59,7 @@ Puis, depuis un navigateur : `http://<IP_CT>:8080`, login `FS_WEB_ADMIN_USER` / 
 | T6 | Mise à jour manuelle | `pct exec 900 -- systemctl start fs25-update.service` → OK |
 | T7 | Redémarrage CT | `pct reboot 900` → service `fs25` repart (enabled) |
 | T8 | Rollback propre | `pct stop 900 && pct destroy 900` → plus de CT 900 |
-| T9 | Activation licence | `pct exec 900 -- /usr/local/bin/fs25-activer` → fichiers *.dat générés, service relancé |
+| T9 | Activation licence | `pct exec 900 -- /usr/local/bin/fs25-activer` → fichiers *.dat générés, service relancé. Tunnel VNC depuis ton poste : `ssh -L 5900:<ip-ct>:5900 root@<ip-pve>` puis client VNC sur `localhost:5900` |
 
 ## 4. En cas d'échec : collecte d'infos
 

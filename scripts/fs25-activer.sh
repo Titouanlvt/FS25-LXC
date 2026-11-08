@@ -125,18 +125,20 @@ ok "VNC prêt sur 127.0.0.1:$VNC_PORT."
 
 # --- 6. Instructions ------------------------------------------------------------
 CT_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+# L'hôte PVE vu depuis le conteneur = passerelle par défaut (vmbr0)
+PVE_IP="$(ip route 2>/dev/null | awk '/^default/ {print $3; exit}')"
 echo
 echo -e "${BL}=== Activation de la licence FS25 ===${CL}"
 echo -e "  Mot de passe VNC (affiché une seule fois) : ${YW}${VNC_PASS}${CL}"
-echo -e "  Depuis ton poste : ${YW}ssh -L ${VNC_PORT}:127.0.0.1:${VNC_PORT} root@${CT_IP:-<ip du CT>}${CL}"
-echo -e "  Puis un client VNC sur ${YW}localhost:${VNC_PORT}${CL}"
+echo -e "  VNC à l'écoute dans le conteneur sur 127.0.0.1:${VNC_PORT} (IP du CT : ${CT_IP:-?})."
+echo -e "  Depuis TON poste : ${YW}ssh -L ${VNC_PORT}:${CT_IP:-<ip-ct>}:${VNC_PORT} root@${PVE_IP:-<ip-pve>}${CL}"
+echo -e "  Puis client VNC sur ${YW}localhost:${VNC_PORT}${CL} — le tunnel passe par l'hôte PVE (pas besoin de sshd dans le CT)."
 if [[ "$ACTIVATION_MODE" == "cle" ]]; then
   echo "  Saisis la clé GIANTS quand le jeu la demande, puis attends le menu principal."
 else
   echo "  Mode Steam (à vérifier) : laisse le jeu arriver au menu principal."
 fi
 echo -e "  Délai maximal : ${TIMEOUT_MIN} min. Ctrl-C pour arrêter."
-command -v sshd >/dev/null 2>&1 || warn "sshd absent du conteneur : installe openssh-server pour le tunnel."
 echo
 
 # --- 7. Jeu, sous l'utilisateur steam (shell nologin : runuser, pas su -) -------
