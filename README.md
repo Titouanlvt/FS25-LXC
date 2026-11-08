@@ -154,7 +154,7 @@ pct exec <CTID> -- /usr/local/bin/fs25-activer --cle    # mode clé GIANTS eShop
 Le script :
 - Arrête le service `fs25`
 - Lance un serveur Xvfb + x11vnc **local uniquement** (127.0.0.1:5900) avec un mot de passe aléatoire
-- Affiche la commande SSH pour tunneliser le port VNC : `ssh -L 5900:127.0.0.1:5900 root@<ip>`
+- Affiche la commande SSH pour tunneliser le port VNC : `ssh -L 5900:<ip-du-CT>:5900 root@<ip-du-PVE>` (le VNC n'écoute que dans le conteneur, sur 127.0.0.1) puis client VNC sur `localhost:5900`
 - Lance le jeu sous l'utilisateur `steam` dans le même WINEPREFIX
 - Attend 30 minutes (délai configurable avec `--timeout N`)
 - Remet `fs25` dans son état d'avant, même sur Ctrl-C ou erreur
