@@ -62,6 +62,13 @@ else
   fail "dedicatedServerConfig.xml absent ou invalide dans $PROFILE_DIR/dedicated_server"
 fi
 
+# Contrôle licence : présence des fichiers *.dat
+if ls "$PROFILE_DIR"/*.dat >/dev/null 2>&1; then
+  pass "fichiers de licence (*.dat) présents"
+else
+  note "Aucun fichier de licence (*.dat) trouvé dans $PROFILE_DIR — activation nécessaire : /usr/local/bin/fs25-activer"
+fi
+
 for u in fs25.service fs25-update.service fs25-update.timer; do
   if [[ -f "$SYSTEMD_DIR/$u" ]]; then pass "unité $u présente"; else fail "unité $u absente ($SYSTEMD_DIR/$u)"; fi
 done

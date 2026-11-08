@@ -139,6 +139,28 @@ Exemple : `sudo ./scripts/fs25-lxc.sh --cpu 4 --ram 12288 --disk 100`
 2. Dans le panneau, **démarrez une savegame** → le serveur de jeu se lance (port `10823`).
 3. Les joueurs se connectent via l'IP/hostname + mot de passe `FS_GAME_PASSWORD`.
 
+## 🔑 Activation de la licence
+
+> ⚠️ **À vérifier** (recherche du 2026-11-07) : GIANTS ne garantit pas le serveur dédié avec la version Steam. L'activation se fait en lançant **une fois le jeu** dans le même préfixe Wine que le serveur. Tant qu'elle n'est pas faite, le journal du serveur dit **« not activated »**.
+
+Pour activer la licence après l'installation (requis pour que le serveur fonctionne) :
+
+```bash
+# Dans le conteneur (en root) :
+pct exec <CTID> -- /usr/local/bin/fs25-activer          # mode Steam par défaut
+pct exec <CTID> -- /usr/local/bin/fs25-activer --cle    # mode clé GIANTS eShop
+```
+
+Le script :
+- Arrête le service `fs25`
+- Lance un serveur Xvfb + x11vnc **local uniquement** (127.0.0.1:5900) avec un mot de passe aléatoire
+- Affiche la commande SSH pour tunneliser le port VNC : `ssh -L 5900:127.0.0.1:5900 root@<ip>`
+- Lance le jeu sous l'utilisateur `steam` dans le même WINEPREFIX
+- Attend 30 minutes (délai configurable avec `--timeout N`)
+- Remet `fs25` dans son état d'avant, même sur Ctrl-C ou erreur
+
+> ⏱️ Changer de clé = relancer `fs25-activer --cle`.
+
 ## 🛠️ Exploitation
 
 ```bash
@@ -183,7 +205,7 @@ pct pull <CTID> /root/savegames.tgz ./savegames.tgz
 | Symptôme | Cause probable / action |
 |---|---|
 | `app_update` échoue en `anonymous` | FS25 n'a pas de serveur gratuit → `STEAM_LOGIN_MODE=account` + licence |
-| « Game is not activated » au lancement | La version Steam vérifie la licence via le client Steam ; utilisez le mode `eshop` (clé GIANTS) ou un client Steam actif dans le conteneur |
+| « Game is not activated » au lancement | La licence n'est pas activée — lancez `/usr/local/bin/fs25-activer` dans le conteneur (voir section 🔑 Activation) |
 | Le panneau web ne répond pas | `pct exec <CTID> -- journalctl -u fs25 -f` ; vérifiez ufw (`ufw status`) et le pare-feu hôte Proxmox |
 | Les joueurs ne voient pas le serveur | Ouvrez `10823` TCP+UDP sur le routeur (redirection vers l'IP du conteneur) + pare-feu Proxmox |
 | Plantage wine | `WINEDEBUG=-all` masque les logs ; relancez avec `WINEDEBUG=warn+all` pour diagnostiquer |

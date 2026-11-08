@@ -168,7 +168,7 @@ if [[ ! -f "$SCRIPT_DIR/install-fs25.sh" ]]; then
   REPO_DIR="$BOOTSTRAP_DIR"
   mkdir -p "$REPO_DIR/config"
   info "Mode one-liner : téléchargement des fichiers compagnons depuis $RAW_BASE ..."
-  for f in scripts/install-fs25.sh scripts/update-fs25.sh scripts/fs25-check.sh config/dedicatedServer.xml.template config/dedicatedServerConfig.xml.template; do
+  for f in scripts/install-fs25.sh scripts/update-fs25.sh scripts/fs25-check.sh scripts/fs25-activer.sh config/dedicatedServer.xml.template config/dedicatedServerConfig.xml.template; do
     dest="$SCRIPT_DIR/$(basename "$f")"
     [[ "$f" == config/* ]] && dest="$REPO_DIR/config/$(basename "$f")"
     curl -fsSL --retry 3 "$RAW_BASE/$f" -o "$dest" || die "Téléchargement de $f impossible depuis $RAW_BASE."
@@ -335,10 +335,11 @@ push_ct() {  # push_ct <src> <dest> <mode> — compatible PVE 7+ (repli sans --p
 push_ct "$SCRIPT_DIR/install-fs25.sh" /root/install-fs25.sh 0700
 push_ct "$SCRIPT_DIR/update-fs25.sh" /root/update-fs25.sh 0700
 push_ct "$SCRIPT_DIR/fs25-check.sh" /root/fs25-check.sh 0700
+push_ct "$SCRIPT_DIR/fs25-activer.sh" /root/fs25-activer.sh 0700
 push_ct "$REPO_DIR/config/dedicatedServer.xml.template" /root/dedicatedServer.xml.template 0600
 push_ct "$REPO_DIR/config/dedicatedServerConfig.xml.template" /root/dedicatedServerConfig.xml.template 0600
 push_ct "$ENVFILE" /root/fs25.env 0600
-pct exec "$VMID" -- chmod 700 /root/install-fs25.sh /root/update-fs25.sh /root/fs25-check.sh
+pct exec "$VMID" -- chmod 700 /root/install-fs25.sh /root/update-fs25.sh /root/fs25-check.sh /root/fs25-activer.sh
 pct exec "$VMID" -- chmod 600 /root/fs25.env /root/dedicatedServer.xml.template /root/dedicatedServerConfig.xml.template
 
 info "Installation de Farming Simulator 25 dans le conteneur (téléchargement ~50 Go, peut durer longtemps) ..."
